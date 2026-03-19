@@ -1901,15 +1901,44 @@ function copyDoc(btn) {
   });
 }
 
+function triggerDownload(blob, filename) {
+  // msSaveBlob: legacy Edge/IE
+  if (window.navigator && window.navigator.msSaveBlob) {
+    window.navigator.msSaveBlob(blob, filename);
+    return;
+  }
+  // Standard: createObjectURL
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+    return;
+  } catch(e) {}
+  // Fallback: data URI (works on file:// in most browsers)
+  const reader = new FileReader();
+  reader.onload = function() {
+    const a = document.createElement('a');
+    a.href = reader.result;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 2000);
+  };
+  reader.readAsDataURL(blob);
+}
+
 function downloadDocTxt(btn) {
   const docBody = btn.closest('.doc-output').querySelector('.doc-body');
   const text = docBody.textContent;
   const docType = document.getElementById('doc-type')?.value || 'document';
   const filename = `QMB_${docType}_${new Date().toISOString().slice(0,10)}.txt`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-  a.download = filename;
-  a.click();
+  triggerDownload(new Blob([text], { type: 'text/plain' }), filename);
   showToast('Downloaded as .txt');
 }
 
@@ -2093,10 +2122,7 @@ async function downloadDocx(btn) {
   try {
     const buffer = await Packer.toBuffer(doc);
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
+    triggerDownload(blob, filename);
     showToast('Downloaded as .docx');
   } catch (e) {
     showToast('Error generating .docx — try .txt instead');
@@ -2431,10 +2457,7 @@ function downloadTranscript() {
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
   const filename = `QMB_Transcript_${new Date().toISOString().slice(0,10)}.txt`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
+  triggerDownload(blob, filename);
   showToast('Transcript downloaded');
 }
 
@@ -3452,7 +3475,7 @@ Risks: insufficient data for statistical validation (mitigated by comprehensive 
 
 Objective: evaluate MFHV benefits on physical/mental health, quality of life, hospitalization rates, and client satisfaction.
 
-Outcome domains: Functional Independence (ADL/IADL); Mental Health (PHQ-9, depression/anxiety); Physical Comfort and Safety; Housing Stability (homelessness reduction indicator); Medical Services and Care (VA access indicator); Hospitalization and ER Visits; Chronic Disease Management; Medication Adherence; Communication with Healthcare Providers; Mobility and Ambulation; Social Engagement; Veteran/Caregiver Relationship; Patient and Family Satisfaction.
+Outcome domains: Functional Independence (ADL/IADL); Mental Health (PHQ-9); Physical Comfort and Safety; Housing Stability; Medical Services/VA Access; Hospitalization and ER Visits; Chronic Disease Management; Medication Adherence; Communication with Healthcare Providers; Mobility; Social Engagement; Veteran/Caregiver Relationship; Patient and Family Satisfaction.
 
 Instruments: SF-36 (health-related QoL), PHQ-9 (depression), VA existing assessments. Coordinate with Language Services for translations. Measurement frequency (monthly/quarterly/annually) and possible question modification determined after year one based on resident length of stay.
 
@@ -3461,27 +3484,20 @@ Sample survey structure (10 sections): (1) Demographics — age, military branch
 Stakeholder engagement: QMB literature review on how other states measure veteran benefits in care; outreach to VA on existing tools; involvement of veterans, caregivers, and healthcare professionals.
 
 ### CARE Tool Foundational Methodology — CFOCB and Differential Monitoring
-The CARE Tools are built on a specific theoretical and empirical foundation documented in the CFOCB Background Notes. Essential for explaining tool development rationale to legal, policy, or legislative audiences.
 
-**Origin:** March 2018 — CCL began collaborating with Dr. Richard Fiene, Senior Consultant at the National Association for Regulatory Administration (NARA), on facility inspection tool development. Dr. Fiene proposed Differential Monitoring as the organizing framework.
+**Origin:** March 2018 — CCL began collaborating with Dr. Richard Fiene (NARA) on facility inspection tool development. Dr. Fiene proposed Differential Monitoring as the organizing framework.
 
-**Differential Monitoring — Four Key Elements:**
-1. Historical Citations and Compliance History
-2. Risk Assessment
-3. Key Indicators
-4. Subject Matter Expert Review
+**Differential Monitoring — Four Elements:** (1) Historical Citations and Compliance History; (2) Risk Assessment; (3) Key Indicators; (4) Subject Matter Expert Review. High-risk rules included regardless of non-compliance rates; highly non-compliant rules also included; key indicators are medium-risk rules with discriminatory/predictive function for overall compliance.
 
-**Dr. Fiene's Approach:** High-risk rules included regardless of non-compliance rates. Highly non-compliant rules (by compliance history) also included. Key indicators are generally medium-risk rules with discriminatory/predictive function for overall compliance. Combination of risk assessment and key indicator methodology = defensible, evidence-based selection process.
+**CFOCB:** Dr. Fiene recommended Caring for Our Children Basics (CFOCB) as the foundational reference — based on CFOC 3rd Edition (AAP/APHA/National Resource Center; funded by Maternal and Child Health Bureau). CFOCB combines risk assessments, key indicators, and expert opinion. Represents minimum health and safety standards for children in out-of-home care. A voluntary ACF resource for states to compare existing requirements against nationally recognized standards.
 
-**Caring for Our Children Basics (CFOCB):** Dr. Fiene recommended CFOCB as the foundational reference. CFOCB is based on *Caring for Our Children: National Health and Safety Performance Standards, Third Edition* (American Academy of Pediatrics/American Public Health Association/National Resource Center, funded by Maternal and Child Health Bureau). CFOCB combines risk assessments, key indicators, and expert opinion. Represents minimum health and safety standards for children in out-of-home care. A voluntary ACF resource for states to compare existing requirements against nationally recognized standards; intended to support QRIS and CQI systems.
+**CCP Crosswalk:** CCP crosswalked its regulations against CFOCB. Initial alignment ~81–84% — characterized by Dr. Fiene as "pretty decent" relative to other states.
 
-**CCP Crosswalk:** CCP performed a crosswalk between its comprehensive regulations/statutes and CFOCB. Initial alignment ~81–84%. Dr. Fiene characterized this as "pretty decent" relative to other states. Recommended CCL also review Washington State's work.
+**Washington State Reference Model:** WA DCYF (Early Start Act of 2015) created unified licensing standards using differential monitoring — key indicator checklist for routine inspections; if any key indicator non-compliant, comprehensive checklist of all licensing rules completed. Directly analogous to CARE Tool Standard → DF Tool structure.
 
-**Washington State Reference Model:** WA Department of Children, Youth, and Families was mandated by the Early Start Act of 2015 to create unified licensing standards for family home and center child care. WA differential system: key indicator checklist; if key indicator non-compliant, a comprehensive checklist of all licensing rules is completed. Combines risk assessment, key indicators, and provider-specific needs focus.
+**CCP Standard Tool Development Basis:** (1) CFOCB alignment crosswalk; (2) Washington State research; (3) Historical citations, compliance history, and statistical analysis to identify Key Indicators. DF Tools based on risk assessment/ratings and SME review.
 
-**CCP Standard Tool Development Basis:** (1) CFOCB alignment crosswalk; (2) Washington State's research and processes; (3) historical citations, compliance history, and statistical analysis to identify Key Indicators. DF Tools based on risk assessment/ratings and SME review.
-
-**Significance for CARE Tool 2.0:** This framework — differential monitoring, CFOCB alignment, key indicators, compliance history, SME review — remains the theoretical basis for CARE Tool 2.0 redesign. It provides the legal and analytical rationale for why certain requirements are included, why the Standard vs. DF Tool distinction exists, and why SME criticality ratings and citation data are central to revision decisions.
+**Significance for CARE Tool 2.0:** This framework — differential monitoring, CFOCB alignment, key indicators, compliance history, SME review — remains the theoretical basis for CARE Tool 2.0. It provides legal and analytical rationale for why certain requirements are included, why Standard vs. DF Tool distinction exists, and why SME criticality ratings and citation data are central to revision decisions.
 
 ### CARE Tool 2.0 — ASCP Redesign Workgroup Process Summary
 Three-phase SME workgroup methodology developed by QMB and CSUS to redesign eight ASCP CARE Tools (~8 months). Goal: streamline tools, improve functionality/structure, maintain validity. Canonical methodology for CARE Tool 2.0 redesign across all programs.
@@ -3492,21 +3508,21 @@ Three-phase SME workgroup methodology developed by QMB and CSUS to redesign eigh
 
 **Phase 1 — Grouping Requirements** (October 2023, in-person, CDSS HQ)
 Determine which requirements can be inspected together. QMB prepared suggested groupings in Excel (one tab per tool, color-coded) with citation and advisory note data. Attendees: 2 SMEs + ≥2 each from Policy, Program, QMB; CSUS facilitated.
-*Lessons:* Policy/program presence critical for regulatory intent questions. Notetakers essential. In-person enabled nonverbal cues and real-time resolution. Limit cognitive load — more SMEs preferred over two.
+*Lessons:* Policy/program presence critical. Notetakers essential. In-person preferred. More SMEs reduce cognitive load.
 
 **Phase 2 — Criticality Ratings via Qualtrics**
 1–2 SMEs per RO; 3 cohorts: (1) RCFE/RCFCI; (2) ADP/SRF; (3) ARF/ARFPSHN/EBSH/CCH. 5–8 SMEs per item; Zoom with QMB/CSUS support; 3 full business days; 3–7 hrs per tool.
 SMEs rated each item on: (1) health/safety impact (No/Minor/Medium/Major); (2) measurable on annual inspection; (3) redundant; (4) correct domain; (5) should it be on the tool; (6) open-response feedback.
-*Lessons:* Allow ≥3 months for survey prep. Rate 4+ items as a group at start to align raters. Open with LPA survey findings. Define "verifiable" with examples upfront.
+*Lessons:* Allow ≥3 months for prep. Rate 4+ items as a group at start to align raters. Open with LPA survey findings. Define "verifiable" with examples.
 
 **Phase 3 — Resolving Disagreements** (online, by cohort)
 80% agreement threshold; splits below 2/3 triggered discussion. Highly cited items (orange) retained without discussion. ≥80% agreement items (light blue) skipped. 2.5 days per group; ~8 weeks total with scheduling; Phase 2 analysis prep ~2 months.
 Discussion order: (1) keep/remove; (2) measurability; (3) redundancy; (4) domain placement. Average criticality rating used for Standard vs. DF placement. Default: if no consensus, requirement stays in current position.
-*Lessons:* Policy/program staff frequently absent — questions went unanswered. In-person preferred. Removal decisions need documented SME rationale.
+*Lessons:* Policy/program staff attendance critical — absences leave questions unresolved. In-person preferred. Document rationale for removal decisions.
 
 **Decision Maps:** One per tool. Columns: keep/remove; Standard vs. DF; domain movement; average criticality; current placement; SME notes. Summary worksheet: counts by domain. Program review notes column. Consistency tracking across tools is a significant challenge.
 
-**Replication Guidance:** Process is extensive but thorough; relies on citation data + SME input; designed to repeat as requirements evolve. Program-specific modification required for CRP, CCP — ASCP process is the reference model.
+**Replication:** Process is extensive but thorough; designed to repeat as requirements evolve. Program-specific modification required for CRP/CCP — ASCP is the reference model.
 
 ### IPP Data Analysis Timeline — CRP, CCP, and ASCP
 Working document tracking all QMB data analysis responsibilities across programs with frequencies, owners (QMB/RADD/Program), and status.
@@ -3517,7 +3533,7 @@ Working document tracking all QMB data analysis responsibilities across programs
 
 **Annually:** LPA surveys; manually cited requirement frequency (determine whether frequently manually cited reqs should be added to tool); single domain trigger frequency (CSUS/RADD responsibility); PCA of correlated domains (confirmatory — are groupings stable?); examination of which domains are triggering correlated groupings; newly added requirement citation frequency review; determination of whether citation frequencies indicate need to change requirement location.
 
-**Triennially (every 3 years):** Triggers and correlations re-evaluation; CARE Tool content revision; LPA/CCL staff training and job aids revision; regression analysis of A and B citation frequency relationships within domains (determines single domain trigger rules — regression used for RCFE; conditional means for others); qualitative SME recommendations for domain changes; IRR study and visits (alternating with random comprehensive inspections; goal: ≥70% LPA agreement); random comprehensive inspections in substantially compliant facilities (validity check); survey findings review by SME and program workgroups; trend analysis; gateway question evaluation; SME workgroup evaluation of tool flow, efficiencies, resources, training; software/hardware field evaluation.
+**Triennially (every 3 years):** Triggers and correlations re-evaluation; CARE Tool content revision; training and job aids revision; regression analysis of A/B citation relationships (determines trigger rules — regression for RCFE; conditional means for others); qualitative SME domain change recommendations; IRR visits (alternating with random comprehensive inspections; goal: ≥70% LPA agreement); random comprehensive inspections in substantially compliant facilities (validity check); survey findings review by SME/program workgroups; trend analysis; gateway question evaluation; tool flow/efficiency/training evaluation.
 
 **New regulation timing:** Standard Tools updated as enacted/promulgated. OAL effective dates: quarterly (Jan 1, Apr 1, Jul 1, Oct 1) for regular regulations; immediately upon OAL approval for emergency regulations. Citation frequency examined after 1 year; placement decision made at 3-year cycle.
 
@@ -3601,64 +3617,56 @@ All thresholds require QMB review and confirmation — do not apply independentl
 
 **Output:** Inclusion recommendation list per tool (citation frequency rank, threshold status, SME criticality, recommended placement). Reviewed by QMB, Program, Policy, and Legal before ITSR submission.
 ### CQI Framework — Inspection Process Project (Draft 2025, CSUS/CCL Collaboration)
-Governing CQI framework for CARE Tools and the IPP. Draft as of 2025; subject to finalization.
+Governing CQI framework for CARE Tools and the IPP. Draft as of 2025.
 
-**Inspection Process Goals:** Protect health and safety through prevention, enforcement, and compliance; support consistent inspections via standardized valid tools; provide actionable compliance data; implement CQI for continuous accuracy; identify promising practices and training opportunities.
+**Inspection Process Goals:** Protect health and safety through prevention, enforcement, and compliance; support consistent inspections via standardized valid tools; provide actionable compliance data; implement CQI; identify promising practices and training opportunities.
 
-**CQI Four-Element Framework:** (1) Identify Improvement Opportunities; (2) Analyze — identify root causes; (3) Take Action — plan and implement corrections; (4) Study Results — confirm actions achieved goal. Continuous and ongoing.
+**CQI Four-Element Framework:** (1) Identify Improvement Opportunities; (2) Analyze root causes; (3) Take Action; (4) Study Results. Continuous and ongoing.
 
 **Important Disclaimer:** CARE Tools do not define compliance requirements. LPAs inspect for compliance with all statutes, regulations, operating standards, and ILS — including those NOT in the CARE Tools.
 
 **CQI Data Sources:** CARE Tools compliance data; FAS/LIS data (citations, advisory notes, complaints, facility history); IRR data; LPA and Licensee Survey data.
 
 **CARE Tools Structure — Four Tiers:**
-- *Standard Tool (Tier 1):* Most critical health/safety requirements per domain; used for all mandated regular inspections.
-- *Domain Focused Tool (Tier 2):* Deeper requirements within a domain; triggered when specific violation count/type cited in that domain during Standard Tool inspection.
-- *Correlated Inspection Tool (Tier 3):* Triggered when a specific number of DF Tools within a correlated domain group are triggered; triggers all DF Tools in that group simultaneously.
-- *Comprehensive Tool (Tier 4):* All DF and Correlated Tools triggered simultaneously; also mandatory for facilities on provisional license, compliance plan, probation, pending legal action, or with substantial non-compliance history.
+- *Standard Tool (Tier 1):* Most critical health/safety requirements per domain; used for all mandated inspections.
+- *Domain Focused Tool (Tier 2):* Deeper requirements within a domain; triggered when specific violation count/type cited during Standard Tool inspection.
+- *Correlated Inspection Tool (Tier 3):* Triggered when a specific number of DF Tools within a correlated group are triggered; triggers all DF Tools in that group.
+- *Comprehensive Tool (Tier 4):* All DF and Correlated Tools triggered; mandatory for provisional license, compliance plan, probation, pending legal action, or substantial non-compliance history.
 
 **Trigger Thresholds (verify against current operative rules):**
 - RCFE: 1 Type A OR 3 Type B → trigger DF Tool
 - CRP/CCP/Adult Care: 1 Type A OR 2 Type B → trigger DF Tool
-- Correlated Inspection Tool thresholds vary by program and facility type (see CARE Tool Domains reference)
+- Correlated Inspection Tool thresholds vary by program/facility type
 
-**Regular Review Schedule:**
-- Annual: Data analysis; anomaly identification; quarterly management reports
-- Triennial (every 3 years): Full tool revision — citation frequency analysis; SME criticality ratings; Standard vs. DF placement evaluation; correlated grouping validation; trigger threshold evaluation
-- As needed: Ad hoc revisions for regulatory changes, new facility types, significant compliance pattern shifts
+**Review Schedule:** Annual (data analysis; anomaly identification; quarterly management reports); Triennial (full tool revision — citation frequency; SME criticality ratings; Standard vs. DF placement; correlated grouping validation; trigger threshold evaluation); As needed (regulatory changes; new facility types; significant compliance pattern shifts).
 
-**LPA and Licensee Survey Cycle:** Annual post-inspection surveys for both LPAs and licensees. Results feed into annual CQI review; multi-year trend analysis supports triennial revision.
+**Tool Change Decision Process:** (1) Data identifies candidates; (2) QMB reviews with CSUS; (3) SME input gathered; (4) Program/Policy review; (5) QMB recommends to leadership; (6) ITLB implements in Excel tool; (7) Change documented in CQI record.
 
-**IRR Process:** Shadow inspections conducted periodically; analyzed by CSUS and reported to QMB. Benchmarks: main regulations ≥70%; domain-level agreement reviewed for patterns.
+**MFHV and Low-Volume Facilities:** Default to comprehensive inspection until sufficient data accumulates. QMB/RADD involved in all CARE Tool development for low-volume facility types.
 
-**Tool Change Decision Process:** (1) Data analysis identifies candidates; (2) QMB reviews with CSUS; (3) SME input gathered; (4) Program and Policy review; (5) QMB makes final recommendation to leadership; (6) ITLB implements in Excel tool; (7) Change documented in CQI record.
+**LPA/Licensee Survey Cycle:** Annual; results feed into CQI review; multi-year trend analysis supports triennial revision.
 
-**MFHV and Low-Volume Facilities:** Facilities with insufficient data default to comprehensive inspection until data accumulates. QMB/RADD involved in all CARE Tool development for low-volume facility types.
+**IRR Process:** Shadow inspections conducted periodically; analyzed by CSUS and reported to QMB. Benchmark: main regulations ≥70% agreement.
 
-**Comprehensive Tool Mandatory Use:** Always required for: provisional license; compliance plan; probation; pending legal/enforcement action; substantial non-compliance history. Based on FAS/LIS history; LPA judgment with supervisory consultation.
+### IPP — Origins, Vision, Theory of Change, and CARE Tool Overview
 
-### IPP Origins and CARE Tool Design History
+**Origins and Legislative Driver:** CCLD developed Key Indicator Tools (KITs) in 2010 during budget cuts. KITs tracked only a small subset of requirements, were not statistically valid, and produced inconsistent statewide inspections. New KITs piloted 2014-2015; CSUS unable to fully validate. 2017-2018 Budget Act Supplemental Report Language required CDSS to justify long-term KIT use vs. comprehensive inspections by September 30, 2017. CCLD launched the IPP in 2017 to fundamentally redesign inspection tools — directly addressing legislative concerns over lack of scientific validation and stakeholder engagement.
 
-**Origins — Key Indicator Tools (KITs) and Legislative Driver:**
-CCLD developed program-specific KITs in late 2010 as a short-term response to budget cuts, furloughs, and hiring freezes. KITs had significant shortcomings: tracked compliance on only a small subset of requirements; not statistically valid and couldn't be improved; didn't allow tracking consultation as prevention; inspections not uniformly performed statewide. KITs evaluated in 2012; new KITs developed and piloted statewide in 2014-2015 but CSUS was unable to fully validate them. Legislative staff were not made aware CCL was shifting to more permanent KIT use. In the 2017-2018 Budget Act, Supplemental Report Language required CDSS to submit justification for long-term KIT use vs. comprehensive inspections by September 30, 2017. Rather than revising the KITs, CCLD began the IPP in 2017 to fundamentally redesign inspection tools and processes. Legislative concern over lack of scientific validation and lack of stakeholder engagement were primary drivers — the IPP was designed specifically to address both.
+**Four IPP Priority Areas:** Prevention (address compliance before harm; TA to providers; data-targeted resources); Compliance (consistent, thorough, valid statewide inspections via CARE Tools); Enforcement (consistent, proportionate, documented); Quality Improvement (data-driven CQI; triennial tool revisions).
 
-**Project Vision:** Consistency and thoroughness of inspections throughout the state and across licensing categories, with a focus on protecting health and safety. Essential: data-driven CQI to evaluate and improve policies and business processes.
+**Balanced Methodology — Three Elements:** (1) Statistical validation; (2) Risk assessment and SME review; (3) Process/implementation practicality. No single element alone is sufficient — a statistically valid tool might miss critical health/safety areas; a tool built only on risk assessment might not be reliable or functional in the field.
 
-**Balanced Methodology — Three Elements:**
-CARE Tool development employs all three, each building on the others:
-1. *Statistical validation* — ensures conclusions drawn are accurate and reliable
-2. *Risk assessment and SME review* — ensures areas posing the greatest risk to resident health and safety are represented
-3. *Considerations for process and implementation/practicality* — ensures the tool functions operationally in the field
-No single element alone is sufficient: a statistically valid tool might miss critical health/safety areas; a tool built only on risk assessment might not be reliable or functional. The goal is a holistic view of facility health that is statistically sound, health/safety informed, and practical to use.
+**CARE Tool System:** Standard Tool (most critical health/safety requirements; every mandated inspection) → Domain Focused Tool (triggered when citation threshold met in a domain) → Correlated Tool (triggered when multiple DF Tools in a correlated group are triggered simultaneously) → Comprehensive Inspection (all tools triggered; mandatory for provisional licenses, compliance plans, probation, or substantial non-compliance history).
 
-**Five Advantages of CARE Tools (as articulated to field staff):**
-1. Checklist approach ensures consistency and thoroughness — even pilots and surgeons use checklists
-2. Auto-populates the 809-D form, reducing duplicative work
-3. Features search function, notes section, and delete-all-responses capability
-4. Requirement section numbers and language readily accessible during inspection, aiding citation communication
-5. Documents both compliant and non-compliant areas, enabling TA and identification of promising practices
+**Theory of Change (CSUS):** Resources (valid tools + infrastructure + trained staff) → Processes (consistent, effective, efficient statewide inspections; high-quality data; CQI capacity) → Results (consistent thorough inspections; compliance/prevention culture shift; actionable state/regional/facility-level information; greater substantial compliance).
 
-**LPA data collection standards:** Complete the tool using the tablet as observations occur — not from notes afterward. Do not leave blanks — every requirement must be marked yes, no, or N/A. N/A only when the requirement truly does not apply (e.g., no bodies of water on premises), not when time ran out.
+**Three Key Outcome Concepts:** Greater Substantial Compliance (holistic facility health view + TA); Actionable Information (what is working, not just deficient; target resources); Consistency (uniform inspection process statewide).
+
+**Five Advantages of CARE Tools:** (1) Checklist ensures consistency/thoroughness; (2) Auto-populates LIC809-D; (3) Search function, notes section, delete-all-responses; (4) Regulation section numbers/language accessible during inspection; (5) Documents compliant and non-compliant areas, enabling TA and promising practices.
+
+**LPA Data Collection Standards:** Complete tool using tablet as observations occur — not from notes afterward. Every requirement must be marked yes/no/N/A. N/A only when the requirement truly does not apply, not when time ran out.
+
+**Key Outcomes Reported:** Improved statewide inspection consistency (IRR studies); data-driven triennial tool revision cycles; auto-generated deficiency documentation; annual LPA and licensee survey feedback loop; public transparency through Most Commonly Cited Deficiencies reports.
 
 ---
 ### CARE Tool Implementation and Engagement History — Timeline by Program
@@ -3697,13 +3705,7 @@ No single element alone is sufficient: a statistically valid tool might miss cri
 - **July 1, 2021: CRP CARE Tools launched** for five piloted facility types — FFA, Group Homes, STRTPs, Small Family Homes, THPP.
 - Subsequent launches: CTF Standard (Dec 2021); EBSH Standard/Pre-Licensing, CTF Pre-Licensing (Apr 2022); YHPC Standard (Apr 2022), Pre-Licensing (May 2022); AA Standard/Pre-Licensing (Jul 2022); TSCF Non-County Standard (Aug 2022 — no Pre-Licensing); Crisis Nurseries Standard/Pre-Licensing (Sep 2022); Community Crisis Homes Standard/Pre-Licensing (Nov 2022). All post-pilot tools are comprehensive only with SME workgroups for creation.
 
-**Stakeholder Engagement:**
-- IPP questions: inspectionprocess@dss.ca.gov
-- Standing agenda item at ASC Advocacy Coalition, Provider Stakeholder Meetings, CCP Stakeholder Meetings.
-- LMS trainings: Annual Inspections Using Infection Control Domain; CARE Tools and IRR Inspections; Introduction to CARE Tool Development and Enforcement Process; LPA Tablet Videos; Using the CARE Tool — Functionality in FAS and During the Inspection Process.
-- PIN series: PIN 18-03-CCLD through PIN 22-11-CRP (all program pilot announcements and statewide launches).
-- ROM series: ROM 18-02-CCLD through ROM 22-02-CCP (year-in-review and IPP quarterly updates).
-- 2023 ASCP Launch used ADKAR model: Awareness (coffee meetings with ROs); Desire (peer testimonials); Knowledge (updated training/LMS); Ability (training sessions); Reinforcement (tips and tricks, post-inspection surveys at months 1 and 3).
+**Stakeholder Engagement:** IPP questions: inspectionprocess@dss.ca.gov. Standing agenda item at ASC Advocacy Coalition, Provider Stakeholder Meetings, CCP Stakeholder Meetings. LMS trainings cover: Annual Inspections Using Infection Control Domain; CARE Tools and IRR Inspections; Introduction to CARE Tool Development; LPA Tablet Videos; Using the CARE Tool in FAS. PIN series: PIN 18-03-CCLD through PIN 22-11-CRP. ROM series: ROM 18-02-CCLD through ROM 22-02-CCP. 2023 ASCP Launch used ADKAR model (Awareness → Desire → Knowledge → Ability → Reinforcement; post-inspection surveys at months 1 and 3).
 
 ---
 ### CARE Tools: Roles and Responsibilities
@@ -3804,57 +3806,6 @@ Authors: Shannon Q. Hurtz, PhD; Greg M. Hurtz, PhD; Penelope G. Dane, PhD; Debor
 
 **Recommendations Implemented in Operational CARE Tool:** Adopt key indicator structure (Standard + DF tool tiers); set operational trigger threshold higher than pilot (1A/4B per pilot recommendation; 1A/3B per CQI Framework); implement correlated domain grouping triggers per PCA results; require continuation visit tracking separately from full inspections; train LPAs on not leaving items blank (primary IRR disagreement driver); refine Residents with SHN domain for N/A applicability.
 
-### IPP Overview Handout (CDSS/CCLD)
-Source: Official CDSS/CCLD IPP handout document.
-
-**IPP Summary:** The Inspection Process Project (IPP) is CCLD's initiative to develop statistically valid, evidence-based inspection tools (CARE Tools) across all three CCLD licensing programs (ASCP, CCP, CRP). Launched in 2017 in response to legislative direction to replace the non-validated Key Indicator Tools (KITs) with a scientifically defensible system.
-
-**Four IPP Priority Areas:**
-1. *Prevention* — Identify and address compliance issues before they cause harm; support providers through technical assistance and education; use data to target resources to high-risk areas.
-2. *Compliance* — Conduct consistent, thorough, and valid inspections across all LPAs and regional offices statewide; use CARE Tools to standardize the inspection process.
-3. *Enforcement* — Take appropriate action when non-compliance is identified; ensure that enforcement is consistent, proportionate, and documented.
-4. *Quality Improvement* — Use inspection data to continuously improve the tools, processes, and training; implement the CQI Framework to evaluate and revise tools on a regular schedule.
-
-**CARE Tool System Summary:**
-- Standard Tool: Applied at every mandated inspection; covers most critical health/safety requirements per domain.
-- Domain Focused Tool: Triggered when citation threshold is met in a domain during Standard Tool inspection; covers additional requirements in that domain.
-- Correlated Tool: Triggered when multiple Domain Focused Tools in a correlated group are triggered simultaneously.
-- Comprehensive Inspection: All tools triggered; used for provisional licenses, compliance plans, probation, or substantial non-compliance history.
-
-**Key Outcomes Reported:**
-- Improved statewide inspection consistency (measured by IRR studies)
-- Data-driven CQI cycle informing tool revisions every 3 years
-- Auto-generated deficiency documentation reducing LPA administrative burden
-- LPA and licensee surveys providing annual feedback loop
-- Public transparency through Most Commonly Cited Deficiencies reports
-
-### IPP Key Concepts and Theory of Change (CSUS, Sacramento State)
-CSUS's formal conceptual framework for the IPP, including the theory of change logic model and key definitions.
-
-**Theory of Change Logic Model — Three Columns:**
-
-*IF we develop these RESOURCES (pre-launch):*
-Valid, reliable, efficient, and effective inspection tools for each CCL program; business processes, policies, training, data resources, CQI system, and organizational capacities; CCL staff adequately trained and supported for deployment (pilot testing, post-pilot feedback, pre-launch training).
-
-*THEN we expect these PROCESSES (1–2 years post-launch):*
-LPAs in each CCL program conduct inspections in a consistent, effective, efficient manner; high-quality inspection data available for analysis; CCL fully integrates new model into business processes; CCL builds CQI capacity (continuous tool updates; data-informed feedback/TA to providers; ongoing training).
-
-*WHICH WILL PRODUCE these RESULTS (1–5 years post-launch):*
-Consistent and thorough statewide inspections across all CCL programs; cultural shift to focus on compliance, enforcement, and prevention; actionable information at individual/regional/state levels (promising practices; targeted resources); greater substantial compliance.
-
-**Three Key Outcome Concepts:**
-- *Greater Substantial Compliance:* Support providers to achieve and remain in substantial compliance through a holistic, consistent view of facility health and by providing tools and technical support.
-- *Actionable Information:* State and regional information on what is working in addition to what is deficient — identify promising practices and target resources.
-- *Consistency:* Compendium of inspection tools to guide a consistent and thorough inspection process throughout the state.
-
-**Three Effectiveness Concepts (from CSUS methodology):**
-- *Effectiveness of the tool:* Does the inspection process contribute to substantial compliance? Best examined in follow-up analyses — pilot data alone insufficient.
-- *Efficiency of the tool:* Inspection length prior to pilot vs. pilot inspection length.
-- *Representativeness:* Extent to which pilot sample represents the full facility population.
-
-**Successful Implementation Depends On:** (1) Valid, efficient, effective inspection tools; (2) Initial and ongoing training/support for LPAs, LPMs, and RO Managers; (3) Integration of new model into internal business processes; (4) User-friendly data collection software and successful transition to CALS; (5) Systematic CQI capacity to re-evaluate and update tools and procedures; (6) Stakeholder and legislative engagement for input and buy-in.
-
----
 ### Combined Executive Summary — RCFE, CCP, and CRP Pilot Reports (CSUS)
 Cross-program comparison of all three IPP pilots.
 
@@ -3959,22 +3910,20 @@ Comprehensive reference for CARE Tool Excel functionality, relevant for ITSR dev
 ---
 ### CCLD Division-Wide Legal Authority and Resource Map
 Source: cdss.ca.gov/inforesources/community-care/policy/laws-and-regulations
-Cross-program policy hub covering all CCLD programs (ASCP, CCP, CRP, Senior Care, Home Care Services).
 
-**Three Primary Legal Authority Sources**
+**Three Legal Authority Sources:**
 1. *California Health and Safety Code* — leginfo.legislature.ca.gov — primary statutory authority.
-2. *California Code of Regulations, Title 22* — via CDSS website — primary regulatory authority for all three CARE Tool programs; applies to all community care facilities except where specifically exempted. CDSS/CCLD not responsible for accuracy of externally hosted versions; authoritative issues to ord@dss.ca.gov.
-3. *Decisions Relied Upon as Precedent* — judicially derived case-law-level precedent for CCLD licensing enforcement decisions. Distinct from Title 22 and HSC; relevant when CARE Tool citation or enforcement actions are challenged.
+2. *California Code of Regulations, Title 22* — via CDSS website — primary regulatory authority for all three CARE Tool programs. CDSS not responsible for accuracy of externally hosted versions; authoritative issues to ord@dss.ca.gov.
+3. *Decisions Relied Upon as Precedent* — judicially derived case-law precedent for CCLD enforcement decisions. Relevant when CARE Tool citations or enforcement actions are challenged.
 
-**CCLD Organizational Structure**
-Programs: Adult Care (ASCP); Senior Care (ASCP — distinct in some contexts); Child Care (CCP); Children's Residential (CRP); Continuing Care Contracts Bureau; Home Care Services Branch; ASCP Centralized Applications Bureau (CAB — new adult/senior care license applications); Care Provider Management Branch (background check/Guardian system). Regional office directories maintained as PDF files for each program.
+**CCLD Organizational Structure:** Programs: Adult Care (ASCP); Senior Care (ASCP); Child Care (CCP); Children's Residential (CRP); Continuing Care Contracts Bureau; Home Care Services Branch; ASCP Centralized Applications Bureau (CAB); Care Provider Management Branch (Guardian/background checks). Regional office directories maintained as PDF files for each program.
 
-**CCLD Resources Relevant to QMB/IPP Work**
+**CCLD Resources Relevant to QMB/IPP Work:**
 - CARE Tools — primary QMB work product
 - CCLD Data Hub — centralized data reporting, all programs
 - CCLD Policies and Procedures / Evaluator Manual
 - Most Commonly Cited Deficiencies — public citation reporting (in knowledge base)
-- Provider Information Notices (PINs) — formal regulatory communications to licensees
+- Provider Information Notices (PINs) — formal regulatory communications
 - Quarterly Updates — supplemental provider communications
 - Inspection Process Project — IPP program page (in knowledge base)
 - Technical Support Program (TSP) — provider technical assistance (prevention priority)
@@ -3983,8 +3932,7 @@ Programs: Adult Care (ASCP); Senior Care (ASCP — distinct in some contexts); C
 - Administrator Certification — facility administrator certification requirements
 - AB 388 Report of Law Enforcement — CRP-specific law enforcement reporting data
 - Dementia Care Information — relevant to RCFE tool content (December 2024 regulation changes)
-- Child Care Facility Fatality Data — CCP-specific public data
-- LPA Workload Study Report and Appendices (2015) — historical workload analysis predating IPP; provides context for LPA capacity constraints that motivated CARE Tool efficiency design goals. The efficiency ratings in LPA surveys (CRP 65%; CCP 76%; ASCP 57.7%) can be read against pre-IPP workload conditions documented in the 2015 study.
+- LPA Workload Study Report (2015) — pre-IPP workload analysis; context for LPA capacity constraints motivating CARE Tool efficiency goals. Survey efficiency ratings (CRP 65%; CCP 76%; ASCP 57.7%) can be read against pre-IPP workload conditions.
 
 ---
 ### Most Commonly Cited Deficiencies — Public Reporting
@@ -4934,84 +4882,7 @@ The "so what?" question. Analysis without a plan for using the findings is waste
 **Step 4 — Document all decisions:** Record every exclusion, imputation, and transformation in a methods memo for reproducibility and audit purposes.
 
 ---
-### V. QUANTITATIVE ANALYSIS METHODS
-
-**1. Descriptive Statistics**
-- Central tendency: mean (sensitive to outliers); median (robust to outliers, preferred for skewed data); mode (nominal/ordinal data).
-- Dispersion: standard deviation (SD), variance, range, interquartile range (IQR).
-- Distribution: skewness (asymmetry), kurtosis (tail weight). Normally distributed: skewness ≈ 0, kurtosis ≈ 3.
-- *QMB use:* All inspection data summaries; survey response summaries; baseline establishment before inferential analysis.
-
-**2. Frequency and Cross-Tabulation Analysis**
-- Frequency tables: count and % for each category.
-- Cross-tabulations (contingency tables): relationship between two categorical variables.
-- Chi-square test of independence: tests whether row and column variables are statistically independent. Assumptions: expected cell frequency ≥ 5 in ≥80% of cells; no cell with expected frequency = 0. Effect size: Cramér's V.
-- *QMB use:* Citation rate by facility type; domain trigger rate by region; compliance status by visit type.
-
-**3. Comparison of Means**
-- Independent samples t-test: compare means of two independent groups. Assumptions: normality, homoscedasticity (Levene's test), independence. Effect size: Cohen's d.
-- One-way ANOVA: compare means of 3+ groups. Post-hoc tests: Tukey HSD (equal variances); Games-Howell (unequal variances). Effect size: η² (eta-squared).
-- *QMB use:* Comparing average inspection time across programs; comparing citation rates across ROs.
-
-**4. Correlation**
-- Pearson r: linear relationship between two continuous variables. Range: -1 to +1. Assumptions: linearity, bivariate normality.
-- Spearman ρ: rank-order correlation; use when data are ordinal or Pearson assumptions violated.
-- Interpretation: |r| < .1 = negligible; .1–.3 = small; .3–.5 = moderate; ≥ .5 = large (Cohen 1988).
-- *QMB use:* Correlation between Type A and Type B citations within a domain; correlation between Standard Tool scores and DF Tool trigger rates.
-
-**5. Proportion Analysis**
-- Single proportion test: z = (p̂ - p₀) / √[p₀(1-p₀)/n]. Confidence intervals for proportions: Wilson interval preferred over normal approximation for small n or extreme proportions.
-- Comparison of two proportions: z-test for difference in proportions; chi-square equivalent for 2×2 table.
-- *QMB use:* LPA efficiency rating proportions by program; response rate analysis; preferred language non-collection rates.
-
-### VI. QUALITATIVE ANALYSIS METHODS (OPEN-ENDED RESPONSES)
-
-**1. Content Analysis**
-- Systematic approach to categorizing qualitative text by meaning.
-- Process: (1) Define coding unit (word, phrase, sentence, theme); (2) Develop coding scheme (inductive from data, or deductive from theory/prior categories); (3) Code all responses; (4) Calculate frequency of each code/theme; (5) Report themed counts.
-- Reliability: Two coders independently code a subset (≥20%); calculate percent agreement and Cohen's kappa (κ). κ ≥ .70 = acceptable; κ ≥ .80 = good; κ ≥ .90 = excellent.
-- *QMB use:* Standard approach for all open-ended survey questions (LPA dislikes/recommendations/likes; licensee feedback); produces "themed buckets with frequency counts" per QMB voice standards.
-
-**2. Thematic Analysis**
-- Broader than content analysis; focuses on identifying patterns of meaning (themes) rather than just frequency.
-- Phases: Familiarization → Initial coding → Searching for themes → Reviewing themes → Defining/naming themes → Reporting.
-- Appropriate for: focus group data; interview transcripts; complex open-ended responses with multiple embedded ideas.
-- *QMB use:* Post-pilot focus group analysis; SME workgroup qualitative outputs; LPA narrative feedback in survey sections where multiple ideas co-occur in single responses.
-
-**3. AI-Assisted Qualitative Analysis**
-- FY24-25 LPA surveys used AI assistance for open-ended response summarization.
-- Human review and validation required: AI may miss nuance, misclassify items, or introduce bias.
-- Document AI-assistance in methods section of reports.
-- Individual responses maintained in supplemental document regardless of AI-summarization use.
-
-**4. Mixed Qualitative-Quantitative Reporting**
-- Open-ended themes are always paired with frequency counts in QMB reports (e.g., "time/workflow burden: 11 mentions").
-- Percentage of total respondents calculated where meaningful (n mentions / total respondents).
-- Theme frequency establishes relative priority; does not establish statistical significance.
-- Representative quotes (anonymized) used to illustrate themes in narrative sections.
-
-### VII. LIKERT SCALE ANALYSIS — DETAILED GUIDANCE
-*(Sullivan & Artino 2013; PMC3886444)*
-
-**Individual Likert items — ordinal:**
-Report as frequencies and percentages. Avoid reporting means for individual items. The distances between "Strongly Agree" and "Agree" and between "Agree" and "Neutral" are not known to be equal, so arithmetic operations (mean, SD) are technically inappropriate. Use "top-box" reporting: percentage selecting the two most positive options combined (e.g., "Agreed or Strongly Agreed").
-
-**Summated Likert scales — can be treated as interval:**
-When multiple items measuring the same construct are summed into a composite score, the resulting scale behaves more like interval data. Requires: (1) all items clearly measure the same construct; (2) internal consistency confirmed via Cronbach's alpha (α ≥ .70 acceptable; ≥ .80 preferred). Composite scores can be analyzed with means, SD, t-tests, ANOVA, regression.
-
-**Cronbach's alpha:**
-A measure of internal consistency (how closely related a set of items are as a group). Ranges 0–1. Interpretation: α < .60 = poor; .60–.69 = questionable; .70–.79 = acceptable; .80–.89 = good; ≥ .90 = excellent (but very high alpha may indicate item redundancy). Report alpha for all multi-item scales.
-
-**Reporting Likert results:**
-- Report n and % for each response option
-- Report "top 2 box" and "bottom 2 box" summary percentages
-- For summated scales: report mean ± SD; note scale range
-- For trend analysis: report means across waves with change score and significance test
-- Consider diverging bar charts for visual display of Likert distributions
-
----
-
-#### VIII. CROSS-TABULATION AND SUBGROUP COMPARISON REPORTING
+### VIII. CROSS-TABULATION AND SUBGROUP COMPARISON REPORTING
 
 **Setting up a crosstab:**
 Rows = survey response categories; Columns = demographic/programmatic subgroups. Or vice versa. Row percentages: "Of respondents in CCP, 78% agreed…" Column percentages: "Of those who agreed, 55% were in CCP…" — choose based on which variable is independent.
@@ -5039,37 +4910,6 @@ For chi-square: Cramér's V (0 = no association; 1 = perfect association). V < .
 **Statistical vs. practical significance:** A statistically significant (p < .05) finding may be practically trivial. Always pair statistical significance with effect size and practical meaning. A large effect size just below p = .05 often warrants discussion.
 
 **Limitations section:** Every report needs: response rate and generalizability implications; known/suspected non-response bias; measurement issues with specific items; small-n subgroup constraints; comparability with prior waves.
-
----
-### X. LONGITUDINAL AND TREND ANALYSIS
-
-When the same survey is administered across multiple time points, comparative analysis enables trend detection.
-
-**Requirements for valid trend analysis:**
-- Identical question wording, response scales, and administration mode across waves
-- Any changes to the instrument must be documented and their effect on comparability assessed
-- Consistent population definition and sampling frame across waves
-
-**What to report across waves:**
-- Mean scores (for summated scales) or top-box percentages (for individual items) at each wave
-- Change scores (Wave 2 − Wave 1) with statistical significance test
-- Confidence intervals around each wave estimate
-- Sample sizes and response rates for each wave (changes in these may explain apparent trends)
-- Contextual annotations: what program changes, policy shifts, or events occurred between waves that might explain observed trends?
-
-**For QMB:** Longitudinal analysis of LPA and licensee surveys across fiscal years is a core IPP/CQI responsibility. Year-over-year trend data for key satisfaction items, tool usability ratings, and open-ended theme frequencies should be tracked in a consistent data structure that permits direct comparison.
-
----
-
-#### XI. QMB-SPECIFIC ANALYSIS GUIDANCE
-
-**SPSS procedures for survey data:** FREQUENCIES (descriptive stats, individual Likert items); CROSSTABS (cross-tabulation, chi-square); COMPARE MEANS / T-TEST (group comparisons); RELIABILITY (Cronbach's alpha for scale validation); REGRESSION (key driver analysis); FACTOR (composite scale development).
-
-**Qualtrics data export:** Export as SPSS (.sav) to preserve variable labels, value labels, and missing data coding. Review codebook before analysis — Qualtrics numeric codes may not correspond intuitively to response labels.
-
-**Reporting to leadership:** Program leadership: actionable findings, program-level patterns, year-over-year trends. Legislative audiences: methodological transparency, confidence intervals, explicit limitations. Field staff: concrete, practical, directly tied to daily work.
-
-**Connecting survey results to CARE Tool decisions:** LPA survey findings (time-in-tool, clarity, domain structure, training needs) feed directly into CARE Tool 2.0 revision decisions. Quantitative ratings provide aggregate signal; open-ended themes identify specific requirements or domains driving dissatisfaction. Triangulate with citation data and IRR results before recommending tool changes.
 
 ---
 ### Survey Design and Development — Comprehensive Reference
@@ -5192,54 +5032,7 @@ Survey fatigue occurs when the survey is too long, too cognitively demanding, or
 
 ---
 
-#### VIII. RESPONSE RATES AND NON-RESPONSE
-
-**Response rate** = (Completed responses / Total invitations sent) × 100
-
-Low response rates reduce effective sample size and may introduce non-response bias — if those who respond differ systematically from those who don't, results are not representative.
-
-**Strategies to improve response rates:**
-- Keep the survey short and well-designed
-- Personalize invitations — address respondents by name
-- Communicate purpose, value, and estimated time upfront
-- Send from a trusted, recognizable sender
-- Follow up with 1–2 reminder emails/contacts (non-harassing)
-- Ensure mobile responsiveness for online surveys
-- Offer incentives where appropriate and ethical
-- Guarantee anonymity/confidentiality where possible
-- Make participation feel meaningful — explain how data will be used
-
-**Non-response bias assessment:** If response rates are low, compare respondents to non-respondents on known characteristics (e.g., facility type, region, program) to assess whether the achieved sample is representative of the intended population. Wave analysis (compare early vs. late responders) can serve as a proxy for non-response bias.
-
-**AAPOR standards:** The American Association for Public Opinion Research (AAPOR) response rate standards provide formal definitions for calculating and reporting response rates (RR1–RR6). RR1 (most conservative) counts all non-contacts as non-response. For government and program evaluation surveys, RR3 or RR4 are commonly reported.
-
----
-
-#### IX. SURVEY ANALYSIS
-
-**Quantitative:** Closed-ended responses analyzed using descriptive statistics (frequencies, %, means, SDs) and inferential statistics (t-tests, ANOVA, chi-square, regression) based on scale type. Scale type determines appropriate tests.
-
-**Qualitative (open-ended):** Systematic thematic coding — deductive (categories defined a priori) or inductive (categories emerge from data). QMB approach: frequency-weighted thematic coding + representative verbatim quotes.
-
-**Subgroup analysis:** Compare responses across programs, ROs, facility types, experience level. Report with subgroup n's; interpret small cells (n < 30) cautiously.
-
-**Longitudinal:** Requires identical question wording, scales, and administration methods across waves. Document any changes and assess comparability effects.
-
-**Reporting:** Lead with key findings; present frequencies/% for closed-ended items; use charts for visual clarity; include confidence intervals for estimates; report response rate, sample size, margin of error; provide subgroup n's; distinguish statistical from practical significance.
-
----
-### X. SPECIAL CONSIDERATIONS FOR QMB SURVEYS
-
-**LPA Surveys:** Population = all LPAs statewide; stratify by program and RO. Mode: Qualtrics online. Key domains: workload/time-in-tool, usability, training needs, perceived tool accuracy. Include both closed-ended and open-ended items. Longitudinal design: maintain consistent core items across administrations. Pilot with 5–10 LPAs; cognitive interviews for new items.
-
-**Licensee Surveys (post-inspection):** Auto-triggered after each CARE Tool inspection via Qualtrics. Keep under 5 minutes — licensees are a non-captive population. Measure: inspection experience, LPA professionalism, clarity of feedback, perceived fairness. Non-response bias risk: licensees with negative experiences may be over/under-represented.
-
-**SME/Workgroup Surveys (CARE Tool redesign):** Purposive sample (not probability-based). Complex Qualtrics design: multiple items per requirement grouping; multiple dimensions rated (health/safety impact, measurability, redundancy, domain placement). Allow ≥3 months for instrument development for large tools. Include rating training and example items at survey start to align interpretation.
-
-**Political Neutrality:** Instruments for public programs must be politically neutral. Questions should not suggest a preferred policy outcome, imply an expected response, or use language signaling organizational preferences. Especially critical for CCLD surveys administered to regulated parties (licensees) who may perceive power asymmetry.
-
----
-### Sampling Methodologies — Comprehensive Reference
+#### Sampling Methodologies — Comprehensive Reference
 *Sources: Grad Coach (Jansen & Warren 2023); NATCO Sampling Strategies (Landreneau); ERIC/Qualitative Report — Mixed Methods Sampling Typology (Onwuegbuzie & Collins 2007); QuestionPro; GeeksforGeeks; Number Analytics (Advanced Sampling Techniques); PMC/HCA Healthcare Journal (Vandever 2020)*
 
 ---
@@ -5414,115 +5207,96 @@ Advanced analytics goes beyond "What happened?" (descriptive) to answer "What wi
 
 ---
 
-#### I. REGRESSION METHODS
-
-**Simple Linear Regression:** y = β₀ + β₁x + ε. One continuous predictor; assumes linearity, homoscedasticity, independence, normality of residuals. Key outputs: R², β coefficients, standard errors, t-tests for coefficients, F-test for model. *QMB use:* Examining relationship between facility capacity and citation counts; inspection time and number of regulations inspected.
-
-**Multiple Linear Regression:** y = β₀ + β₁x₁ + β₂x₂ + ... + βₙxₙ + ε. Multiple predictors; same assumptions as simple regression plus no perfect multicollinearity. Key outputs: adjusted R², individual β coefficients with t-tests, overall model F-test, VIF for multicollinearity. *QMB use:* Predicting domain-level citation count from facility type, region, and compliance history simultaneously.
-
-**Logistic Regression:** DV is binary (0/1). Output: log-odds (logit) = β₀ + β₁x₁ + ... Exponentiate to get odds ratio (OR). OR > 1: predictor increases probability of outcome; OR < 1: decreases. *QMB use:* Predicting probability that a domain trigger threshold is met; predicting whether a facility is cited for Type A violation based on facility characteristics. Model fit: Hosmer-Lemeshow test; Nagelkerke R².
-
-**Ordinal Logistic Regression:** DV has ordered categories (3+). Proportional odds model; assumes parallel regression lines (proportional odds assumption — test with Brant test). *QMB use:* Predicting thoroughness rating category (Very/Somewhat/Not Thorough) from LPA characteristics in survey data.
-
-**Key Regression Assumptions and Diagnostics:**
-- Linearity: Residual vs. fitted plots; LOWESS smoother
-- Homoscedasticity: Breusch-Pagan test; scale-location plot
-- Multicollinearity: VIF > 10 indicates serious concern; VIF > 5 warrants attention
-- Outliers/influential cases: Cook's D > 4/n is influential; leverage values; DFFITS
-- Independence: Durbin-Watson for time-series; clustering by RO may require robust SEs
-
-**Regression in QMB CQI Context (CSUS Methodology):**
-The A/B citation relationship analysis (Step 4 in CSUS Procedure Manual) uses regression to examine the mean number of Type B citations at each level of Type A citations within a domain. Results inform single-domain trigger threshold evaluation — RCFE threshold (1A/3B or 1A/4B) was derived from this regression analysis. Any change to trigger thresholds requires replication of this analysis and QMB discussion.
-
-### II. ANALYSIS OF VARIANCE (ANOVA) METHODS
-
-**One-Way ANOVA:** Tests whether means from 3+ independent groups differ. F = MS_between / MS_within. Significant F → at least one group differs; post-hoc tests needed (Tukey HSD for equal variances; Games-Howell for unequal). Effect size: η² (eta-squared).
-
-**Factorial (Two-Way) ANOVA:** Two+ independent variables (factors). Tests main effects of each factor AND their interaction (effect of one factor depends on level of another). More powerful than separate t-tests — controls Type I error inflation.
-
-**Repeated Measures ANOVA:** Same subjects measured multiple times (across time points, conditions, or years). Violates independence assumption of standard ANOVA; accounts for within-subject correlation. Analogous to a paired t-test extended to 3+ time points. Assumption: sphericity (Mauchly's test); if violated, apply Greenhouse-Geisser or Huynh-Feldt correction.
-
-**MANOVA:** Extension of ANOVA for multiple dependent variables simultaneously. Tests joint and separate effects; avoids inflated Type I error from multiple ANOVAs; accounts for correlations among DVs. Produces Wilks' Lambda, Pillai's Trace, Hotelling-Lawley statistics. If significant, follow up with univariate ANOVAs.
-
----
-### III. FACTOR ANALYSIS
-
-Dimensionality reduction identifying underlying latent factors from observed variables by examining their covariance/correlation structure. Variables that co-vary strongly group into the same factor.
-
-**Two types:** EFA (Exploratory Factor Analysis) — no prior hypothesis; discovers factor structure from data; used in scale development. CFA (Confirmatory Factor Analysis) — tests whether a hypothesized factor structure fits data; used to validate instruments; part of SEM.
-
-**Key outputs:** Factor loadings (correlation of variable with factor; > .40 considered meaningful); eigenvalues (variance explained per factor); communalities (proportion of variable variance explained); scree plot (determines number of factors to retain).
-
-**Rotation:** Varimax (orthogonal — factors remain uncorrelated) or Oblimin/Promax (oblique — allows factor correlation). Rotation improves interpretability without affecting total variance explained.
-
-**vs. PCA:** PCA maximizes variance explained; factor analysis models underlying latent constructs. PCA components are mathematical summaries; factors are theoretically meaningful. Often yield similar results with standardized data.
-
-**QMB Application:** Underlies CARE Tool domain grouping methodology. Citation patterns that cluster into correlated domains indicate shared latent compliance dimensions — informing Standard vs. Domain Focused Tool structure.
-
----
-### IV. MULTIVARIATE ANALYSIS — ADDITIONAL METHODS
-
-**Cluster Analysis:** Groups observations into clusters (similar within, dissimilar across) without an outcome variable. Methods: hierarchical clustering (dendrogram), k-means (specify k), DBSCAN (density-based). Use for facility typologies, survey respondent subgroups.
-
-**Discriminant Analysis:** Classifies observations into predefined groups using linear combinations of predictors. Maximizes group separation. Related to MANOVA; same assumptions. Use when groups are known and goal is predicting group membership.
-
-**Canonical Correlation Analysis:** Examines relationships between two sets of variables simultaneously. Finds linear combinations of each set that are maximally correlated. Generalizes multiple regression to multiple outcomes.
-
-**Structural Equation Modeling (SEM):** Combines path analysis (causal relationships among observed variables) with factor analysis (latent variables). Simultaneously estimates measurement and structural models. Fit indices: CFI, RMSEA, SRMR. Use to test complex theoretical frameworks.
-
-**Mediation Analysis:** Tests whether the effect of X on Y operates through intermediate variable M (mediator). Uses path analysis or regression-based bootstrapping (PROCESS macro). Key test: indirect effect (a × b path). Moderated mediation = mediation relationship varies by a moderator.
-
----
-### V. NON-PARAMETRIC STATISTICS
-
-Used when parametric assumptions cannot be met: non-normal distributions, ordinal data, small samples, unknown distribution shape. Less powerful than parametric equivalents but more robust.
-
-| Parametric Test | Non-Parametric Equivalent | Use Case |
-|---|---|---|
-| One-sample t-test | Wilcoxon signed-rank test | Median vs. hypothesized value |
-| Independent t-test | Mann-Whitney U test | Compare two independent groups on ordinal/non-normal data |
-| Paired t-test | Wilcoxon signed-rank test | Compare two related measurements |
-| One-way ANOVA | Kruskal-Wallis test | Compare 3+ independent groups |
-| Repeated measures ANOVA | Friedman test | Compare 3+ related measurements |
-| Pearson correlation | Spearman rank correlation | Association with ordinal or non-normal data |
-
-**Jackknife Resampling:** Estimates bias and variance by systematically leaving out one observation at a time and recalculating the statistic. Used to assess stability of estimates, especially for regression coefficients or model performance metrics.
-
-**Bootstrap Resampling:** Repeatedly samples with replacement from the data to build an empirical sampling distribution. Does not require normality assumptions. Used for confidence intervals and hypothesis testing when parametric assumptions are uncertain.
+#### Advanced Statistical Methods — Unified QMB Reference
+*Consolidates: Regression Methods; ANOVA; Factor Analysis; Multivariate Methods; Quantitative Analysis; Qualitative Analysis; Likert Scale Analysis; Response Rates; Survey Analysis; QMB-Specific Guidance; Choosing the Right Method; Distribution Concepts; Longitudinal Analysis; Time Series; Non-Parametric Statistics; Bayesian Statistics; Survival Analysis*
 
 ---
 
-#### VI. TIME SERIES ANALYSIS
+**DESCRIPTIVE STATISTICS**
+Central tendency: mean (sensitive to outliers), median (robust; preferred for skewed data), mode (nominal/ordinal). Dispersion: SD, variance, range, IQR. Distribution: skewness (asymmetry), kurtosis (tail weight). Normal distribution: skewness ≈ 0, kurtosis ≈ 3. *QMB use:* All inspection data and survey response summaries.
 
-Analyzes data collected on the same variable at regular time intervals. Goals: identify trends, seasonal patterns, and cycles; forecast future values; understand autocorrelation structure.
+**FREQUENCY AND CROSS-TABULATION**
+Chi-square test of independence: tests whether two categorical variables are statistically independent. Assumptions: expected cell frequency ≥ 5 in ≥80% of cells. Effect size: Cramér's V. *QMB use:* Citation rate by facility type; domain trigger rate by region.
 
-**Key concepts:**
-- *Trend:* Long-term directional movement
-- *Seasonality:* Regular periodic fluctuation (e.g., quarterly, annual)
-- *Autocorrelation:* Correlation of a series with its own lagged values — violates OLS regression independence assumption
-- *Stationarity:* Mean and variance do not change over time (required for many models)
+**COMPARISON OF MEANS**
+Independent t-test (2 groups); One-way ANOVA (3+ groups; post-hoc: Tukey HSD or Games-Howell). Effect sizes: Cohen's d, η². Factorial ANOVA: tests main effects + interaction between 2+ factors. Repeated Measures ANOVA: same subjects at multiple time points; accounts for within-subject correlation; sphericity assumption (Mauchly's test; correct with Greenhouse-Geisser or Huynh-Feldt). MANOVA: multiple DVs simultaneously; produces Wilks' Lambda, Pillai's Trace, Hotelling-Lawley; follow up with univariate ANOVAs if significant.
 
-**Common methods:**
-- *ARIMA (AutoRegressive Integrated Moving Average):* Models stationary time series using autoregressive (past values predict present) and moving average (past errors predict present) components. "Integrated" = differencing to achieve stationarity.
-- *Exponential Smoothing:* Weighted average of past observations, with more recent observations weighted more heavily
-- *Decomposition:* Separates a series into trend, seasonal, and residual components
+**CORRELATION**
+Pearson r: linear relationship between two continuous variables; range -1 to +1. Spearman ρ: rank-order; use for ordinal data or violated Pearson assumptions. Cohen thresholds: |r| < .1 negligible; .1–.3 small; .3–.5 moderate; ≥ .5 large.
 
-**Applications in QMB context:** Tracking inspection counts, citation rates, survey response trends, compliance rates, and workload over fiscal years. Time series methods detect whether observed changes are trend-driven or seasonal — important for distinguishing real program impact from cyclical variation.
+**REGRESSION**
+Simple linear: y = β₀ + β₁x + ε. Multiple linear: multiple predictors; outputs adjusted R², β coefficients, VIF for multicollinearity (VIF > 10 = serious; > 5 = attention). Logistic: binary DV; output = log-odds; exponentiate for odds ratio; model fit via Hosmer-Lemeshow, Nagelkerke R². Ordinal logistic: ordered categorical DV (3+); proportional odds model; test with Brant test. Regression diagnostics: residual vs. fitted (linearity), Breusch-Pagan (homoscedasticity), Cook's D > 4/n (influential cases), Durbin-Watson (independence). *QMB CQI use:* A/B citation relationship analysis — regression of mean Type B citations at each Type A level; informs single-domain trigger threshold evaluation; RCFE thresholds derived from this analysis.
+
+**PCA AND FACTOR ANALYSIS**
+PCA: maximizes variance explained; components are mathematical summaries. Factor Analysis: models underlying latent constructs (EFA = exploratory; CFA = confirmatory). Key outputs: factor loadings (> .40 meaningful), eigenvalues, communalities, scree plot. Rotation: Varimax (orthogonal) or Oblimin/Promax (oblique). *QMB use:* Domain grouping methodology — co-citation patterns identify correlated domains informing Standard vs. DF Tool structure.
+
+**MULTIVARIATE ADDITIONAL METHODS**
+Cluster Analysis: groups observations by similarity without an outcome variable; methods: hierarchical, k-means, DBSCAN. Discriminant Analysis: predicts group membership using linear combinations of predictors. SEM (Structural Equation Modeling): combines path analysis + factor analysis; fit indices: CFI, RMSEA, SRMR. Mediation: tests whether X → Y effect operates through mediator M; indirect effect = a × b path.
+
+**NON-PARAMETRIC METHODS**
+Use when parametric assumptions not met (non-normal, ordinal, small n): Mann-Whitney U (vs. independent t-test), Wilcoxon signed-rank (vs. paired t-test), Kruskal-Wallis (vs. one-way ANOVA), Friedman (vs. repeated measures ANOVA), Spearman ρ (vs. Pearson r). Bootstrap resampling: builds empirical sampling distribution by resampling with replacement; does not require normality.
+
+**TIME SERIES AND LONGITUDINAL**
+ARIMA: models stationary time series using autoregressive and moving average components. Exponential smoothing: weighted average of past observations. Decomposition: separates into trend, seasonal, and residual components. For QMB trend analysis: identical wording/scales across waves required; report mean scores and change scores with significance tests; annotate contextual program changes between waves.
+
+**SURVIVAL ANALYSIS**
+Analyzes time-to-event data with censoring. Kaplan-Meier: non-parametric survival function estimate; log-rank test compares groups. Cox Proportional Hazards: estimates covariate effects on hazard rate; assumption = proportional hazards constant over time; output = hazard ratios.
+
+**DISTRIBUTION CONCEPTS**
+Q-Q plots: diagnostic for normality — points on 45° line = normally distributed; deviations indicate skew or heavy tails. Poisson: count data at constant rate λ; mean = variance = λ; overdispersion → Negative Binomial regression. Log-Normal: right-skewed positive data (response time, facility capacities). Box-Cox transformation: normalizes skewed data for regression/ANOVA. Chebyshev's Inequality: at least (1 − 1/k²) of observations lie within k SDs of mean regardless of distribution.
+
+**BAYESIAN METHODS**
+Prior (existing belief) × Likelihood (data) = Posterior (updated belief). Outputs: posterior mean/median, credible intervals. Advantages: handles small samples, incorporates domain knowledge, intuitive probability statements. Applications: Bayesian A/B testing; prior-informed regression where historical rates are known.
 
 ---
 
-#### VII. SURVIVAL ANALYSIS
-
-Analyzes time-to-event data — how long until an event occurs (facility closure, complaint substantiation, license renewal). Handles censoring: observations where the event has not yet occurred by the end of the study period.
-
-**Key methods:**
-- *Kaplan-Meier estimator:* Non-parametric estimate of the survival function (probability of surviving past time t). Visualized as a step-function survival curve. Log-rank test compares survival curves between groups.
-- *Cox Proportional Hazards regression:* Semi-parametric model estimating the effect of covariates on the hazard rate (instantaneous risk of the event at time t). Produces hazard ratios (HR). Assumption: proportional hazards — the effect of covariates is constant over time.
-- *Exponential/Weibull distributions:* Parametric survival models assuming specific distributional shapes for the hazard function.
+**QUALITATIVE ANALYSIS (OPEN-ENDED RESPONSES)**
+Content analysis: (1) Define coding unit; (2) Develop coding scheme (inductive or deductive); (3) Code responses; (4) Calculate theme frequencies. IRR: ≥20% double-coded; κ ≥ .70 acceptable, ≥ .80 good. Thematic analysis: identifies patterns of meaning beyond frequency; appropriate for focus groups, interviews, complex multi-idea responses. QMB approach: frequency-weighted thematic coding with frequency counts + representative verbatim quotes. AI-assisted summarization (used in FY24-25 surveys): requires human review and validation; document AI assistance in methods; maintain individual responses in supplemental document.
 
 ---
 
-#### VIII. GENERALIZED LINEAR MODELS (GLMs)
+**LIKERT SCALE ANALYSIS** *(Sullivan & Artino 2013)*
+Individual items: treat as ordinal; report frequencies/%; avoid means for individual items; use "top-box" (% selecting top 2 options combined). Summated scales (composite of multiple items): can be treated as interval if all items measure the same construct and Cronbach's α ≥ .70 (acceptable); ≥ .80 preferred. Very high alpha (> .95) may indicate item redundancy. Report: n and % per option, top-2/bottom-2 box summaries; for composite scales report mean ± SD.
+
+---
+
+**RESPONSE RATES AND NON-RESPONSE**
+Response rate = (completed / total invitations) × 100. Strategies: keep survey short; personalize invitations; communicate purpose/estimated time; send from trusted sender; 1–2 follow-up reminders; guarantee anonymity; explain data use. Non-response bias assessment: compare respondents to non-respondents on known characteristics (facility type, region, program); wave analysis (early vs. late responders as proxy). AAPOR standards: RR3 or RR4 commonly reported for government/program evaluation surveys.
+
+---
+
+**QMB SURVEY TYPES**
+LPA surveys: all LPAs statewide; stratify by program and RO; Qualtrics online; core items consistent across administrations for longitudinal analysis; pilot with 5–10 LPAs before launch. Licensee surveys: auto-triggered post-inspection via Qualtrics; keep under 5 minutes; measure inspection experience, LPA professionalism, clarity of feedback. SME/workgroup surveys: purposive sample; complex Qualtrics design with multiple dimensions per item; allow ≥3 months for instrument development; include rating training at start. Political neutrality: instruments must not suggest preferred policy outcome or use language signaling organizational preferences — especially critical for licensee surveys due to power asymmetry.
+
+---
+
+**SPSS PROCEDURES FOR QMB**
+FREQUENCIES (descriptive, individual Likert items); CROSSTABS (cross-tabulation, chi-square); COMPARE MEANS / T-TEST (group comparisons); RELIABILITY (Cronbach's alpha); REGRESSION (key driver analysis); FACTOR (composite scale development). Export Qualtrics data as SPSS (.sav) to preserve labels and missing data coding.
+
+---
+
+**METHOD SELECTION GUIDE**
+
+| Research Question | Method |
+|---|---|
+| Predict continuous outcome from multiple predictors | Multiple regression |
+| Predict binary outcome | Logistic regression |
+| Compare 3+ group means | One-way ANOVA |
+| Compare groups on multiple outcomes | MANOVA |
+| Same subjects at multiple time points | Repeated measures ANOVA |
+| Reduce many variables to fewer dimensions | PCA or Factor Analysis |
+| Group observations by similarity | Cluster Analysis |
+| Predict group membership | Discriminant Analysis |
+| Ordinal data or non-normal distribution | Non-parametric tests |
+| Time-ordered data, forecasting | ARIMA / Time Series |
+| Time-to-event with censoring | Survival Analysis |
+| Count outcome data | Poisson / Negative Binomial |
+| Test causal mechanisms through mediator | Mediation Analysis |
+| Incorporate prior knowledge, small samples | Bayesian methods |
+| Check normality | Q-Q plot, Shapiro-Wilk test |
+
+---
+### VIII. GENERALIZED LINEAR MODELS (GLMs)
 
 Extends linear regression to outcomes that are not normally distributed. Consists of: (1) a random component specifying the distribution of Y; (2) a systematic component (linear predictor); (3) a link function connecting the two.
 
@@ -5536,38 +5310,7 @@ Extends linear regression to outcomes that are not normally distributed. Consist
 
 ---
 
-#### IX. BAYESIAN STATISTICS
-
-Bayesian methods treat parameters as random variables with probability distributions rather than fixed unknowns. Prior beliefs (prior distribution) are updated with observed data (likelihood) to produce a posterior distribution.
-
-- **Prior:** What is known/believed before seeing the data
-- **Likelihood:** Probability of the data given the parameter
-- **Posterior:** Updated belief after seeing the data (prior × likelihood, normalized)
-
-Key outputs: posterior mean/median (point estimates), credible intervals (Bayesian analog to confidence intervals — "there is a 95% probability the parameter lies in this interval"), posterior predictive distribution.
-
-**Advantages:** Naturally handles small samples, incorporates domain knowledge, produces intuitive probability statements, handles missing data via imputation within the model.
-
-**Applications:** Bayesian A/B testing (richer than frequentist), prior-informed regression in licensing data contexts where historical rates are known.
-
----
-
-#### X. DISTRIBUTION-SPECIFIC CONCEPTS
-
-**Q-Q Plots:** Compare sample quantiles against theoretical normal quantiles. Points on the 45° line = normally distributed. Deviations: left skew (lower tail), right skew (upper tail), heavy tails (both ends deviate outward). Essential diagnostic before parametric tests.
-
-**Log-Normal:** Variable X is log-normally distributed if log(X) is normal. Common for right-skewed positive data (income, response time, facility capacities).
-
-**Poisson:** Models count data — events occurring in a fixed interval at constant average rate λ. Mean = Variance = λ. Use for citation counts, complaint frequencies. When variance >> mean → overdispersion → use Negative Binomial regression.
-
-**Power Law:** P(X > x) ∝ x^(-α). Heavy tails — a small number of observations are extremely large. Standard mean/variance statistics are misleading for power-law data.
-
-**Box-Cox Transformation:** Family of power transformations normalizing skewed data: y(λ) = (y^λ − 1)/λ; log(y) when λ = 0. λ estimated from data to maximize normality. Preprocessing step before regression/ANOVA when normality is violated.
-
-**Chebyshev's Inequality:** For any distribution, at least (1 − 1/k²) of observations lie within k standard deviations of the mean. At least 75% within 2 SDs, regardless of shape. Distribution-free bound — less precise than the normal 68-95-99.7 rule but universally applicable.
-
----
-### XI. ADVANCED ANALYTICS TAXONOMY (IBM Framework)
+#### XI. ADVANCED ANALYTICS TAXONOMY (IBM Framework)
 
 | Type | Question Answered | Methods |
 |---|---|---|
@@ -5580,28 +5323,7 @@ Advanced analytics = predictive + prescriptive + AI/ML methods. Requires: statis
 
 ---
 
-#### XII. CHOOSING THE RIGHT METHOD — DECISION GUIDE
-
-| Research Question | Recommended Method |
-|---|---|
-| Predict continuous outcome from multiple predictors | Multiple regression |
-| Predict binary outcome | Logistic regression |
-| Compare 3+ group means on one outcome | One-way ANOVA |
-| Compare groups on multiple outcomes simultaneously | MANOVA |
-| Same subjects measured at multiple time points | Repeated measures ANOVA |
-| Reduce many variables to fewer dimensions (data-driven) | PCA or Factor Analysis |
-| Group observations by similarity (no outcome) | Cluster Analysis |
-| Predict group membership | Discriminant Analysis |
-| Data are ordinal or non-normal, small n | Non-parametric tests |
-| Time-ordered data, forecasting | ARIMA / Time Series |
-| Time-to-event with censoring | Survival Analysis (Kaplan-Meier, Cox) |
-| Count outcome data | Poisson / Negative Binomial regression |
-| Test causal mechanisms through intermediary variables | Mediation Analysis |
-| Incorporate prior knowledge, small samples | Bayesian methods |
-| Check normality assumption | Q-Q plot, Shapiro-Wilk test |
----
-
-### PCA — Applied Step-by-Step Reference
+#### PCA — Applied Step-by-Step Reference
 *Source: Zakaria Jaadi, Built In (updated Jun 2025). builtin.com/data-science/step-step-explanation-principal-component-analysis*
 
 #### What Is PCA? (Accessible Summary)
