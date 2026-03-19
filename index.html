@@ -1293,7 +1293,7 @@
 <body>
 
 <!-- API Key Prompt -->
-<div class="apikey-overlay" id="apikey-overlay" style="display:none !important;">
+<div class="apikey-overlay" id="apikey-overlay" style="display:none;">
   <div class="apikey-box">
     <h3>Enter your Anthropic API key</h3>
     <p>Get a key at <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>. Stored in sessionStorage only — cleared when you close this tab.</p>
@@ -2592,7 +2592,7 @@ async function streamResponse(statusLabel) {
     headers: {
       'Content-Type': 'application/json',
       'anthropic-version': '2023-06-01',
-      'x-api-key': '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',
+      'x-api-key': sessionStorage.getItem('qmb_api_key') || '',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
@@ -3260,7 +3260,12 @@ function updateModelIndicator() {
 }
 
 // ── API KEY PROMPT ─────────────────────────────
-function apikeyInit() { /* key hardcoded */ }
+function apikeyInit() {
+  if (!sessionStorage.getItem('qmb_api_key')) {
+    document.getElementById('apikey-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('apikey-field').focus(), 80);
+  }
+}
 
 function apikeySubmit() {
   const field = document.getElementById('apikey-field');
@@ -3276,7 +3281,14 @@ function apikeySubmit() {
 }
 
 // Handle 401 — bad/expired key: clear and re-prompt
-function apikeyHandleUnauth() { showToast('API key error — contact administrator'); }
+function apikeyHandleUnauth() {
+  sessionStorage.removeItem('qmb_api_key');
+  document.getElementById('apikey-field').value = '';
+  document.getElementById('apikey-field').classList.remove('err');
+  document.getElementById('apikey-err').style.display = 'none';
+  document.getElementById('apikey-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('apikey-field').focus(), 80);
+}
 
 apikeyInit();
 initContextChips();
