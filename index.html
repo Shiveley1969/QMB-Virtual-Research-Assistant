@@ -1479,7 +1479,7 @@
         <span class="input-hint">Enter to send &middot; Shift+Enter for new line &middot; 📄 attach file</span>
         <div style="display:flex;align-items:center;gap:14px;">
           <span class="input-counter" id="input-counter"></span>
-          <span class="token-count" id="token-count">Session: — / 129,183 tokens</span>
+          <span class="token-count" id="token-count">Session: 0 / 150,543 tokens · Est. cost: $0.0000</span>
         </div>
       </div>
     </div>
@@ -2425,7 +2425,7 @@ function updateTokenCount() {
   if (!el) return;
 
   if (!conversationHistory.length) {
-    el.textContent = `Session: 0 tokens · Est. cost: $0.000`;
+    el.textContent = `Session: 0 / ${SESSION_HEADROOM.toLocaleString()} tokens · Est. cost: $0.0000`;
     el.className = 'token-count';
     return;
   }
@@ -3086,6 +3086,7 @@ function toggleFilePanel() {
 
 // Drag-and-drop on the drop zone
 document.addEventListener('DOMContentLoaded', () => {
+  updateTokenCount();
   const dz = document.getElementById('fa-drop-zone');
   if (!dz) return;
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
@@ -3362,6 +3363,7 @@ function apikeyHandleUnauth() {
 
 apikeyInit();
 initContextChips();
+updateTokenCount();
 renderPresetList();
 renderSessionList();
 restoreDraft();
