@@ -4211,50 +4211,27 @@ Source: CCLD_Draft_SOW_FY_24_-_27__1_.docx (Exhibit A). Operative contract gover
 ### CSUS Inspection Data Analysis Procedure Manual
 Authors: Shannon Q. Hurtz, Ph.D. and Gregory M. Hurtz, Ph.D., CSUS. Covers RCFE, CCP, CRP, Adult Care. Software: SPSS (CSUS); SAS/R (RADD); Power BI (QMB for datasets >1,048,576 rows). CSUS/RADD complete Steps 1–3 before QMB begins Step 4.
 
-**Data Structure:** One row per regulation per inspection (Standard + DF Tools combined). Continuation visits = single row (blank from Domain field onward; no ToolFileName). FFA = 602 regulations per inspection.
+**Data Structure:** One row per regulation per inspection (Standard + DF Tools combined). Continuation visits = single row (blank from Domain onward; no ToolFileName). FFA = 602 regulations per inspection.
 
-**35 Variables:** Facility (LPAName, FacilityName, FacilityNumber, FacilityType, FacTypeName, RegionalOffice, RO_Name); Visit (VisitType, VisitDate, TimeBegan, TimeEnded, Time2Complete, Capacity, Census, InterRater, ToolFileName — key dedup field); Regulation (Domain, Type, Section, SectionTitle, Regulation, AppliesTo, DomainFocused); Compliance (Compliance YES/NO/N/A, Deficiency A/B/TV/TA, Notes, Cited, CompHistory, DefHistory); Timing (DomainTimeElapsed, ToolTimeElapsed, DomainFocusedTriggered); Survey (SurveyContact, Email, LPAEmail).
+**35 Variables:** Facility (LPAName, FacilityName, FacilityNumber, FacilityType, FacTypeName, RegionalOffice, RO_Name); Visit (VisitType, VisitDate, TimeBegan, TimeEnded, Time2Complete, Capacity, Census, InterRater, ToolFileName — key dedup field); Regulation (Domain, Type, Section, SectionTitle, Regulation, AppliesTo, DomainFocused); Compliance (YES/NO/N/A, Deficiency A/B/TV/TA, Notes, Cited, CompHistory, DefHistory); Timing (DomainTimeElapsed, ToolTimeElapsed, DomainFocusedTriggered); Survey (SurveyContact, Email, LPAEmail).
 
-**Facility Type Codes:** CRP: 430=FFA; 431=SubFFA; 710=SFH; 726=THPP; 730=GH; 733=STRTP (728/729/732 exclude after QMB verification). CCP: 810=FCCH; 830=Infant; 840=School-Age; 845=CCCMI; 850=CCC. ASCP: 734=ARFPSHN; 735=ARF; 736=RCFCI; 737=EBSH; 738=CCH; 772=SRF; 775=ADP; 740=RCFE; 741=RCFE-CCRC (740+741 analyzed separately; can be combined).
+**Facility Type Codes:** CRP: 430=FFA; 431=SubFFA; 710=SFH; 726=THPP; 730=GH; 733=STRTP. CCP: 810=FCCH; 830=Infant; 840=School-Age; 845=CCCMI; 850=CCC. ASCP: 734=ARFPSHN; 735=ARF; 736=RCFCI; 737=EBSH; 738=CCH; 772=SRF; 775=ADP; 740=RCFE; 741=RCFE-CCRC.
 
-**Step 1 — Import:** Import Excel file(s); merge if needed.
+**Step 2 — Data Cleaning (13 steps):** (1) Verify inspection dates; (2) Verify facility types; (3) Verify visit types — exclude pre-licensing and shadow; (4) Check continuation visits — flag abnormally high counts; (5) Check duplicates via FacilityNumber frequency; (6) Add facility type labels; (7) Create SingleRowFilter (first row per ToolFileName — used for all inspection counts); (8) Check row count per tool; (9) Verify domains per tool; (10) Fix section code floating-point errors (use RECODE); (11) Verify inspection times; (12) Verify shadow/IRR visits; (13) Handle missing values — Compliance=NO with blank Deficiency is a data quality issue.
 
-**Step 2 — Data Cleaning (13 steps):**
-1. Verify inspection dates — remove out-of-range (joint QMB/CSUS decision)
-2. Verify facility types — flag unexpected codes before excluding
-3. Verify visit types — exclude pre-licensing and shadow visits
-4. Check continuation visits — flag abnormally high counts (e.g., 547 rows = mislabeled full inspection → recode to "Recode–Annual")
-5. Check duplicates — FacilityNumber frequency; expected rows = total tool regulations; cross-check dates
-6. Add facility type labels — SPSS VALUE LABELS
-7. Create SingleRowFilter — first row of each inspection (from ToolFileName); excludes continuation rows; used for all inspection counts
-8. Check row count per tool — cross-tab FacilityType × Ntoolrows; inconsistency = mid-year regulation changes
-9. Verify domains per tool — cross-tab FacilityType × Domain; zero expected for absent domains
-10. Fix section code errors — floating-point precision (e.g., '1569.3140000000001' → '1569.314'); use RECODE
-11. Verify inspection times — format conversion may be needed for SPSS
-12. Verify shadow/IRR visits — each shadow should have a corresponding primary; flag mismatches
-13. Handle missing values — Compliance=NO with blank Deficiency is a data quality issue
-
-**Step 3 — Descriptive Analyses:** (A) Inspection counts by facility type and visit type; (B) Continuation days (sum Time2Complete ÷ 8); (C) Deficiency frequencies by domain — A/B/TV/TA by facility type; (D) Highest citation requirements — Standard and DF Tool separately; (E) Lowest citation requirements — rarely/never cited → candidates for DF Tool or removal; (F) Deficiency trends by month; (G) Compliance and N/A frequencies; (H) Manually cited regulations (requires QMB collaboration).
+**Step 3 — Descriptive Analyses:** (A) Inspection counts; (B) Continuation days (sum Time2Complete ÷ 8); (C) Deficiency frequencies by domain; (D) Highest citation requirements; (E) Lowest citation requirements → candidates for DF Tool or removal; (F) Deficiency trends by month; (G) Compliance and N/A frequencies; (H) Manually cited regulations.
 
 **Step 4 — Main Analyses:**
 
-Trigger Rules (always verify with QMB — rules have varied across documents):
-- CRP/CCP/Adult Care per this manual: 1A or 2B
-- RCFE per this manual: 1A or 4B
-- CQI Framework states RCFE = 1A/3B; Excel Tool states RCFE = 1A/4B and Adult Care = 1A/3B
-- *Operative current rules: always confirm with QMB/ITLB*
+Trigger Rules (always verify with QMB): CRP/CCP/Adult Care: 1A or 2B. RCFE: 1A or 4B (manual); 1A/3B (CQI Framework). *Operative rules: always confirm with QMB/ITLB.*
 
-Method 1 — Timestamp-Based: DomainFocusedTriggered field → DomainTriggered variable. Limitation: captures accidental triggers; misses domains where trigger met but no DF Tool exists.
+Method 1 — Timestamp-Based: DomainFocusedTriggered field. Limitation: captures accidental triggers; misses domains where trigger met but no DF Tool exists.
 
-Method 2 — Citation-Based (more accurate): Count inspections where ≥1A OR ≥threshold B in a domain (Standard Tool only). CRP demo (1A/2B): 203 triggers vs. 227 timestamp. Report the higher count of both methods.
-
-Trigger Reason Analysis: CRP demo: 1A=82 (40.4%); 2B=121 (59.6%). SFH most 1A-driven; FFA most 2B-driven.
+Method 2 — Citation-Based (more accurate): Count inspections where ≥1A OR ≥threshold B in a domain (Standard Tool only). Report higher count of both methods.
 
 A/B Citation Relationship: Mean Type B at each Type A level. CRP demo: at 1A, mean Bs=4.0 (SD=6.59). Informs trigger threshold evaluation — any change requires QMB discussion.
 
-PCA (Confirmatory): Reshape to one row per facility; domain score = sum(A+B+TV+TA). Exclude zero-variance domains. SPSS FACTOR /EXTRACTION PC /ROTATION VARIMAX. Validates correlated groupings. Zero-variance (new/never-cited) domains excluded.
-
-Which Regulations Lead to Triggers: Count A and B citations in triggered domains (Standard Tool only); rank by frequency.
+PCA (Confirmatory): Reshape to one row per facility; domain score = sum(A+B+TV+TA). SPSS FACTOR /EXTRACTION PC /ROTATION VARIMAX. Validates correlated groupings.
 
 **Critical Decision Rule:** All results discussed with QMB before any tool change recommendations. CSUS/RADD do not make unilateral recommendations.
 
@@ -4516,73 +4493,39 @@ Source: Washington State Department of Children, Youth, and Families (DCYF). Ref
 The WA study is cited in CARE Tool development documentation as evidence that the differential monitoring approach — the theoretical foundation of the CARE Tool system — has empirical support beyond California. When defending the CARE Tool methodology to Legal, policy leadership, or the legislature, the WA study provides external validity evidence that key indicator tools can be both efficient and effective.
 
 ### CSUS Methodology for Identifying Key Indicators (November 9, 2018) — Foundational Framework Document
-Original CSUS proposal establishing the theoretical and methodological framework for the CARE Tool inspection system. Produced at IPP start following the July–September 2018 pilot. Foundational validity document; still operative for defending tool design decisions to Legal and leadership.
+Original CSUS proposal establishing the theoretical and methodological framework for the CARE Tool inspection system. Produced at IPP start following the July–September 2018 pilot. Foundational validity document; operative for defending tool design decisions to Legal and leadership.
 
-**Context:** The 2018 pilot used a comprehensive tool covering all 1,400+ regulations — impractical for routine inspection. CSUS developed a hierarchical staged-in process: a subset of key indicators (KIs) guide LPAs toward deeper investigation, triggering Domain Focused Tools when thresholds are met. KI and triggered-item selection must be supported by validity evidence.
+**Context:** The 2018 pilot used a comprehensive tool covering all 1,400+ regulations — impractical for routine inspection. CSUS developed a hierarchical staged-in process: a subset of key indicators (KIs) guide LPAs toward deeper investigation, triggering Domain Focused Tools when thresholds are met.
 
-**Validity Framework — Three Evidence Sources** (adapted from AERA/APA/NCME 2014 Standards for Educational and Psychological Testing):
-1. *Internal structure:* Pilot violation rate frequencies; factor analysis, cluster analysis, correlation, regression to identify co-violation patterns. Inter-rater reliability (% agreement, Cohen's kappa) from pilot flags items with rater disagreement, affecting KI eligibility.
-2. *Content:* KIs per domain proportional to total items per domain in the comprehensive tool — ensures the Standard Tool is a balanced "mini-test" and prevents domain overrepresentation.
-3. *Criterion-related (relations to other variables):* Overall compliance scores should correlate with external facility health indicators. SME criticality ratings serve as the primary criterion-related evidence source (external outcome data rarely available).
+**Validity Framework — Three Evidence Sources** (AERA/APA/NCME 2014):
+1. *Internal structure:* Pilot violation frequencies; factor/cluster analysis, correlation, regression to identify co-violation patterns; IRR (% agreement, Cohen's kappa) flags items with rater disagreement.
+2. *Content:* KIs per domain proportional to total items per domain — Standard Tool is a balanced "mini-test" preventing domain overrepresentation.
+3. *Criterion-related:* Compliance scores should correlate with external facility health indicators; SME criticality ratings are the primary criterion-related evidence source.
 
-**KI Selection Criterion:** Items must be both *frequently violated* AND *judged critical* for harm risk — mirroring California occupational licensing exam development methodology (frequency of occurrence + harm risk to public).
+**KI Selection Criterion:** Items must be both *frequently violated* AND *judged critical* for harm risk — mirroring California occupational licensing exam methodology (frequency + harm risk to public).
 
-**Two Data Sources:** (1) July–Sept 2018 pilot data — violation frequencies, IRR, co-violation patterns; (2) SME criticality ratings — scale ratings of violation consequences.
+**Two Data Sources:** (1) July–Sept 2018 pilot — violation frequencies, IRR, co-violation patterns; (2) SME criticality ratings — scale ratings of violation consequences.
 
-**Planned Analyses (now largely implemented):** Descriptive: advisory note usage, most-cited per domain, N/A patterns, time per domain, citation type frequency. Correlational/advanced: co-triggered specialty tools; facility size vs. citations; resident/staff interviews; licensee survey; continuation visit comparison; A/B/TA/TV relationships; KI–citation linkage. Goals: Effectiveness (does inspection contribute to substantial compliance?), Efficiency (vs. pre-pilot baseline), Representativeness (pilot data to full population).
+**Planned Analyses (now largely implemented):** Descriptive: advisory note usage, most-cited per domain, N/A patterns, time per domain, citation type frequency. Advanced: co-triggered specialty tools; facility size vs. citations; resident/staff interviews; licensee survey; continuation visit comparison; A/B/TA/TV relationships; KI–citation linkage. Goals: Effectiveness, Efficiency, Representativeness.
 
-**Historical significance:** Intellectual origin of the CQI methodology, domain/trigger architecture, and SME criticality rating process that define CARE Tool 2.0.
+**Historical significance:** Intellectual origin of the CQI methodology, domain/trigger architecture, and SME criticality rating process defining CARE Tool 2.0.
 
 ---
-
-## Voice and Formatting Standards — CRITICAL
-- **Third-person institutional voice.** Never use "I," "we," or first-person in summaries, memos, or reports. Write as "The bureau," "LPAs," "the program," "staff," etc.
-- **Paragraph form as default.** Do not use bullet points or numbered lists in summaries and narrative documents unless Jonathan explicitly requests them. Write in full, flowing prose.
-- **Professional, regulation-aware language.** Assume outputs may be shared with Legal, policy leadership, or field staff. Avoid casual phrasing. Use precise government/regulatory language.
-- **Analytical depth.** When given raw qualitative data (survey responses, meeting notes), categorize, synthesize, and draw analytical conclusions. Do not merely restate the inputs.
-- **Concision within completeness.** Be thorough but not verbose. Every sentence should carry weight.
-
-## Behavior Guidelines
-- First drafts should be complete and ready to edit — not placeholder outlines.
-- Expect 2-4 rounds of refinement. Accept editorial direction precisely and decisively.
-- When categorizing open-ended responses, produce themed buckets with frequency counts.
-- For emails: professional, concise, and appropriate for the stated audience (Legal, leadership, field staff).
-- Never editorialize or add opinions about policy positions. Report and synthesize; do not advocate.
-- **CARE Tool minimum inclusion standard:** The CARE Tools must include, at a minimum, all regulations, requirements, and statutes that are critical to ensuring the health and safety of those in care. This is a foundational principle that governs all CARE Tool content decisions and supersedes efficiency or streamlining considerations. When drafting content related to tool revision, requirement removal, or SME workgroup decisions, this standard must be accurately reflected.
-
-## Document Modes
-When the user specifies a document type, format accordingly:
-- **Qualitative Summary:** Paragraph-form synthesis of raw data. Third-person. Themed. No bullets.
-- **Internal Memo:** Standard government memo format. Date, To, From, Re: headers. Body in paragraphs.
-- **Professional Email:** Clear subject line, professional salutation, concise body, appropriate close.
-- **Program Report:** Structured narrative with section headings. No bullet lists in body text.
-- **Policy Narrative:** Explanatory prose suitable for legal or leadership review.
-
 ### LPA Inspection Guidance — Issuing Deficiencies When Multiple Sub-Sections Apply
-Source: Travis Brown, CCLD QA/AT&S, 2019. Operative guidance for how LPAs handle deficiency issuance in the CARE Tool when parent/child regulation structures apply.
+Source: Travis Brown, CCLD QA/AT&S, 2019. Operative guidance for LPA deficiency issuance when parent/child regulation structures apply.
 
-**Background:** Licensing regulations are structured hierarchically — a parent regulation (e.g., "16-102-1") may have multiple lettered sub-sections (e.g., "16-102-1(a)", "16-102-1(b)"). The CARE Tool includes individual sub-sections as separate line items. When evaluating compliance, the question is whether to cite the parent and/or the individual sub-sections.
+**Background:** Regulations are structured hierarchically — a parent regulation may have multiple lettered sub-sections. The CARE Tool includes sub-sections as separate line items.
 
 **Core Decision Rules:**
+- *Rule 1 — Cite the sub-section, not the parent:* When a specific sub-section is violated, cite that sub-section only. Citing both parent and sub-section = double-jeopardy.
+- *Rule 2 — Each sub-section is independent:* Multiple violated sub-sections of the same parent = multiple separate citations.
+- *Rule 3 — Cite parent when the violation is structural/general:* If the facility has no written policy required by the parent regulation (rather than a deficiency in a specific element), cite the parent.
+- *Rule 4 — Gateway questions:* If gateway answer is NO (e.g., no pool on premises), related sub-items auto-mark N/A. LPAs should not override N/A on gateway-driven items unless actual conditions warrant.
+- *Rule 5 — HSC vs. CCR:* When both an HSC provision and a Title 22 CCR provision cover the same requirement, cite the CCR (Title 22) only. Citing both = double-jeopardy. Consistent with Redundancy Rule in tool development (CCR always retained over duplicative HSC).
 
-*Rule 1 — Cite the sub-section, not the parent:* When a specific sub-section is violated, cite that sub-section. Do not also cite the parent regulation for the same violation. Citing both would constitute double-jeopardy (two citations for one violation).
+**CARE Tool Implications:** Mark each sub-section row independently based on actual observations. If parent + sub-section both marked NO for the same violation, cite only the sub-section and mark parent N/A. Multi-LPA inspections: each LPA records own observations; citations reconciled post-inspection; continuity notes essential.
 
-*Rule 2 — Each sub-section is an independent violation:* If multiple sub-sections of the same parent regulation are violated in one inspection, each violated sub-section receives its own citation. Three violated sub-sections = three separate deficiencies.
-
-*Rule 3 — Use parent citation when the violation is structural/general:* If the violation is of the parent regulation as a whole (e.g., the facility has no written policy required by the parent regulation, rather than a deficiency in a specific element), cite the parent.
-
-*Rule 4 — Gateway questions:* Some CARE Tool items are structured as gateway questions. If the gateway answer is NO (e.g., no pool on premises), all related sub-items auto-mark N/A. LPAs should not override N/A on gateway-driven items unless actual conditions warrant review.
-
-*Rule 5 — Related statutes (HSC) vs. regulations (CCR):* When both an HSC provision and a Title 22 CCR provision cover the same requirement and both are in the tool, cite the CCR (Title 22) provision — not the HSC. Citing both constitutes double-jeopardy. This is consistent with the Redundancy Rule in tool development methodology (CCR provision always retained over duplicative HSC provision).
-
-**CARE Tool-Specific Implications:**
-- When multiple sub-section rows in the CARE Tool cover the same parent regulation, each is evaluated independently.
-- If a CARE Tool item includes both a parent and sub-sections, mark each individually based on actual observations — do not auto-mark sub-sections based on parent rating.
-- If a CARE Tool item appears to create a double-citation scenario (parent + sub-section both marked NO for the same violation), LPA should cite only the sub-section and mark the parent N/A or note the rationale.
-- Multi-LPA inspections: each LPA records their own observations; citations are reconciled post-inspection; continuity notes are essential for split inspections.
-
-**Analytical Context for QMB:**
-Travis Brown's guidance is directly relevant to citation data quality. LPAs who follow these rules consistently produce citation data aligned with QMB's analytical assumptions (one violation = one citation; parent and sub-section not double-counted). Deviations affect: deficiency frequency counts; domain-level trigger calculations; correlation analyses; logit-scaling and mean+1SD threshold calculations. When QMB observes unexpected citation patterns, this guidance should be consulted as a possible explanatory factor.
+**QMB Analytical Context:** Consistent application of these rules is required for valid citation data. Deviations affect deficiency frequency counts, domain-level trigger calculations, correlation analyses, and logit-scaling/mean+1SD threshold calculations. Unexpected citation patterns should be evaluated against this guidance before concluding a tool or data quality issue exists.
 
 ---
 ### Licensee Type Codes
