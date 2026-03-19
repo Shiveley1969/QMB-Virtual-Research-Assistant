@@ -2423,43 +2423,42 @@ function updateSessionCostAccumulator(inputTokens, outputTokens) {
 function updateTokenCount() {
   const el = document.getElementById('token-count');
   if (!el) return;
+
   if (!conversationHistory.length) {
-    el.textContent = `Session: — / ${SESSION_HEADROOM.toLocaleString()} tokens`;
+    el.textContent = `Session: 0 tokens · Est. cost: $0.000`;
     el.className = 'token-count';
     return;
   }
+
   const sessionChars = conversationHistory.reduce((a, m) => a + m.content.length, 0);
   const sessionTokens = Math.round(sessionChars / 4);
   const pct = sessionTokens / SESSION_HEADROOM;
 
-  // Estimate cost from message chars if no API usage data yet
-  if (sessionInputTokens === 0) {
+  // Use char-based estimate if API hasn't returned usage data yet
+  let inputTok = sessionInputTokens;
+  let outputTok = sessionOutputTokens;
+  if (inputTok === 0) {
     const userChars = conversationHistory.filter(m => m.role === 'user').reduce((a, m) => a + m.content.length, 0);
     const assistantChars = conversationHistory.filter(m => m.role === 'assistant').reduce((a, m) => a + m.content.length, 0);
-    sessionInputTokens  = Math.round((userChars + SYSTEM_PROMPT_TOKENS * conversationHistory.filter(m => m.role === 'user').length) / 4);
-    sessionOutputTokens = Math.round(assistantChars / 4);
+    const numUserMsgs = conversationHistory.filter(m => m.role === 'user').length;
+    inputTok  = Math.round((userChars + SYSTEM_PROMPT_TOKENS * numUserMsgs) / 4);
+    outputTok = Math.round(assistantChars / 4);
   }
 
-  const cost = estimateSessionCost();
-  const costStr = cost < 0.01 ? '<$0.01' : `$${cost.toFixed(3)}`;
+  const model = document.getElementById('model-select')?.value || 'claude-haiku-4-5-20251001';
+  const rates = MODEL_COSTS[model] || MODEL_COSTS['claude-haiku-4-5-20251001'];
+  const cost = (inputTok / 1_000_000 * rates.input) + (outputTok / 1_000_000 * rates.output);
+  const costStr = `$${cost.toFixed(4)}`;
 
-  // Budget warning thresholds
   let budgetWarning = '';
-  if (cost >= 0.50) {
-    budgetWarning = ' ⚠ High usage';
-  } else if (cost >= 0.25) {
-    budgetWarning = ' ⚠ Moderate usage';
-  }
+  if (cost >= 0.50) budgetWarning = ' ⚠ High usage';
+  else if (cost >= 0.25) budgetWarning = ' ⚠ Moderate usage';
 
   el.textContent = `Session: ~${sessionTokens.toLocaleString()} / ${SESSION_HEADROOM.toLocaleString()} tokens · Est. cost: ${costStr}${budgetWarning}`;
 
-  if (pct >= 0.85 || cost >= 0.50) {
-    el.className = 'token-count alert';
-  } else if (pct >= 0.65 || cost >= 0.25) {
-    el.className = 'token-count warn';
-  } else {
-    el.className = 'token-count';
-  }
+  if (pct >= 0.85 || cost >= 0.50) el.className = 'token-count alert';
+  else if (pct >= 0.65 || cost >= 0.25) el.className = 'token-count warn';
+  else el.className = 'token-count';
 }
 
 // ══════════════════════════════════════
