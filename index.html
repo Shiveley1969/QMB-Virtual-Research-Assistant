@@ -3166,8 +3166,8 @@ function faRenderCard() {
     const sheetNames = Object.keys(d.sheets);
     const rows = d.sheets[d.activeSheet] || [];
     const totalRows = Math.max(0, rows.length - 1);
-    const rowWarning = totalRows > 1000
-      ? `<span class="fa-stat" style="color:var(--warning);font-weight:600;" title="Only the first 1,000 rows will be sent to the assistant">&#9888; ${totalRows.toLocaleString()} rows — capped at 1,000</span>`
+    const rowWarning = totalRows > 2500
+      ? `<span class="fa-stat" style="color:var(--warning);font-weight:600;" title="Only the first 2,500 rows will be sent to the assistant">&#9888; ${totalRows.toLocaleString()} rows — capped at 2,500</span>`
       : `<span class="fa-stat">${totalRows.toLocaleString()} rows</span>`;
     stats = `<span class="fa-stat">${sheetNames.length} sheet${sheetNames.length>1?'s':''}</span>${rowWarning}<span class="fa-stat">${(rows[0]||[]).length} cols</span>`;
     if (sheetNames.length > 1) {
@@ -3230,8 +3230,8 @@ function faBuildContent() {
   sheetNames.forEach(sn => {
     const rows = d.sheets[sn];
     content += `--- Sheet: ${sn} ---\n`;
-    content += rows.slice(0,1000).map(r => r.map(c => String(c??'').replace(/,/g,'|')).join(',')).join('\n');
-    if (rows.length > 1000) content += `\n[${rows.length-1000} additional rows not shown — file exceeded 1,000-row limit]`;
+    content += rows.slice(0,2500).map(r => r.map(c => String(c??'').replace(/,/g,'|')).join(',')).join('\n');
+    if (rows.length > 2500) content += `\n[${rows.length-2500} additional rows not shown — file exceeded 2,500-row limit]`;
     content += '\n\n';
   });
   return content;
